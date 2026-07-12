@@ -235,10 +235,15 @@ function sendSMTPEmail({ host, port, user, pass, from, to, subject, body }) {
     let transporter;
     if (host.includes('gmail.com')) {
       transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
         auth: {
           user: user,
           pass: pass
+        },
+        tls: {
+          rejectUnauthorized: false
         }
       });
     } else {
