@@ -36,13 +36,18 @@ if (!fs.existsSync(dbPath)) {
   fs.writeFileSync(dbPath, '[]', 'utf-8');
 }
 
-// 2. Parse .env file
+// 2. Load configuration from system environment or .env file
+const envVars = {
+  EMAIL_USER: process.env.EMAIL_USER || '',
+  EMAIL_PASS: process.env.EMAIL_PASS || '',
+  EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  EMAIL_PORT: process.env.EMAIL_PORT || '465',
+  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
+  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || ''
+};
+
 const envPath = path.join(projectDir, '.env');
-const envVars = {};
-if (!fs.existsSync(envPath) && process.env.EMAIL_USER) {
-  Object.assign(envVars, process.env);
-  console.log('[PASS] Configuration successfully loaded from system environment variables.');
-} else {
+if (fs.existsSync(envPath)) {
   try {
     const envContent = fs.readFileSync(envPath, 'utf-8');
     envContent.split(/\r?\n/).forEach(line => {
@@ -53,7 +58,6 @@ if (!fs.existsSync(envPath) && process.env.EMAIL_USER) {
           const key = trimmed.substring(0, index).trim();
           let val = trimmed.substring(index + 1).trim();
           
-          // Strip surrounding double or single quotes if present
           if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
             val = val.substring(1, val.length - 1);
           }
@@ -64,10 +68,13 @@ if (!fs.existsSync(envPath) && process.env.EMAIL_USER) {
     });
     console.log('[PASS] .env file successfully loaded and parsed.');
   } catch (err) {
-    console.error('[FAIL] Could not parse .env file:', err);
-    process.exit(1);
+    console.error('Could not parse .env file:', err);
   }
+} else {
+  console.log('[PASS] .env file not found. Using system environment variables.');
 }
+
+console.log(`[SMTP Settings] Host: ${envVars.EMAIL_HOST}, Port: ${envVars.EMAIL_PORT}, User: ${envVars.EMAIL_USER}, Pass configured: ${!!envVars.EMAIL_PASS}`);
 
 // 3. Validate HTML references & DOM IDs
 const customerHtml = fs.readFileSync(path.join(projectDir, 'index.html'), 'utf-8');
@@ -390,7 +397,7 @@ const server = http.createServer(async (req, res) => {
         console.log(`\n======================================================`);
         console.log(`[DEVELOPER OTP FALLBACK] Code for ${data.email}: ${otpCode}`);
         console.log(`======================================================\n`);
-        fallbackNotice = `(SMTP mail send failed: ${err.message}. Falling back: printed code to console)`;
+        fallbackNotice = `(SMTP mail send failed: ${err ? (err.message || err.toString()) : 'Unknown error'}. Falling back: printed code to console)`;
         emailSent = true;
       }
     }
@@ -504,7 +511,7 @@ const server = http.createServer(async (req, res) => {
         console.log(`\n======================================================`);
         console.log(`[DEVELOPER OTP FALLBACK] Resent Code for ${data.email}: ${otpCode}`);
         console.log(`======================================================\n`);
-        fallbackNotice = `(SMTP mail send failed: ${err.message}. Falling back: printed code to console)`;
+        fallbackNotice = `(SMTP mail send failed: ${err ? (err.message || err.toString()) : 'Unknown error'}. Falling back: printed code to console)`;
         emailSent = true;
       }
     }
@@ -615,7 +622,7 @@ const server = http.createServer(async (req, res) => {
         console.log(`\n======================================================`);
         console.log(`[DEVELOPER PASSWORD RESET] Code for ${data.email}: ${resetCode}`);
         console.log(`======================================================\n`);
-        fallbackNotice = `(SMTP mail send failed: ${err.message}. Falling back: printed code to console)`;
+        fallbackNotice = `(SMTP mail send failed: ${err ? (err.message || err.toString()) : 'Unknown error'}. Falling back: printed code to console)`;
         emailSent = true;
       }
     }
