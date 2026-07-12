@@ -14,6 +14,10 @@ const files = ['index.html', 'admin.html', 'index.css', 'index.js', 'admin.js', 
 let allExist = true;
 
 files.forEach(f => {
+  if (f === '.env' && process.env.EMAIL_USER) {
+    console.log(`[PASS] .env file check bypassed (using environment variables)`);
+    return;
+  }
   const filePath = path.join(projectDir, f);
   if (fs.existsSync(filePath)) {
     console.log(`[PASS] File exists: ${f}`);
@@ -35,29 +39,34 @@ if (!fs.existsSync(dbPath)) {
 // 2. Parse .env file
 const envPath = path.join(projectDir, '.env');
 const envVars = {};
-try {
-  const envContent = fs.readFileSync(envPath, 'utf-8');
-  envContent.split(/\r?\n/).forEach(line => {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('#')) {
-      const index = trimmed.indexOf('=');
-      if (index > -1) {
-        const key = trimmed.substring(0, index).trim();
-        let val = trimmed.substring(index + 1).trim();
-        
-        // Strip surrounding double or single quotes if present
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-          val = val.substring(1, val.length - 1);
+if (!fs.existsSync(envPath) && process.env.EMAIL_USER) {
+  Object.assign(envVars, process.env);
+  console.log('[PASS] Configuration successfully loaded from system environment variables.');
+} else {
+  try {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const index = trimmed.indexOf('=');
+        if (index > -1) {
+          const key = trimmed.substring(0, index).trim();
+          let val = trimmed.substring(index + 1).trim();
+          
+          // Strip surrounding double or single quotes if present
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.substring(1, val.length - 1);
+          }
+          
+          envVars[key] = val;
         }
-        
-        envVars[key] = val;
       }
-    }
-  });
-  console.log('[PASS] .env file successfully loaded and parsed.');
-} catch (err) {
-  console.error('[FAIL] Could not parse .env file:', err);
-  process.exit(1);
+    });
+    console.log('[PASS] .env file successfully loaded and parsed.');
+  } catch (err) {
+    console.error('[FAIL] Could not parse .env file:', err);
+    process.exit(1);
+  }
 }
 
 // 3. Validate HTML references & DOM IDs
