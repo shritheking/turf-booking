@@ -218,7 +218,7 @@ function writeUsers(users) {
 // Custom SMTP client using raw TLS socket (No npm dependencies)
 function sendSMTPEmail({ host, port, user, pass, from, to, subject, body }) {
   return new Promise((resolve, reject) => {
-    const socket = tls.connect({ host, port, rejectUnauthorized: false }, () => {
+    const socket = tls.connect({ host, port, servername: host, rejectUnauthorized: false }, () => {
       // Socket connected
     });
 
