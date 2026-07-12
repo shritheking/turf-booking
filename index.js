@@ -602,12 +602,15 @@ async function handleAuthOtpSubmit(e) {
 
     const data = await res.json();
     if (data.success) {
-      showToast('Account activated! You can now sign in.');
-      switchAuthStep('signin');
-      
-      // Auto-prefill the sign-in form email
-      document.getElementById('auth-signin-email').value = state.authEmail;
-      document.getElementById('auth-signin-password').focus();
+      state.currentUser = data.user;
+      saveLocalStorage();
+      showToast(`Welcome, ${data.user.name}! Your account is verified and logged in.`);
+      closeAuthModal();
+      updateAuthNavUI();
+
+      if (document.getElementById('checkout-modal').style.display === 'flex') {
+        openCheckoutModal();
+      }
     } else {
       showToast(data.message || 'Incorrect verification code.', 'error');
     }
