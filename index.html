@@ -410,12 +410,12 @@
           <div id="otp-status-message" style="font-size: 12px; text-align: center; color: var(--google-blue); margin-top: -12px; margin-bottom: 16px; font-weight: 500;"></div>
           <form onsubmit="handleAuthOtpSubmit(event)">
             <div class="otp-inputs-row">
-              <input type="text" id="otp-1" class="otp-input" maxLength="1" pattern="[0-9]" required oninput="focusNextOtp(this, 'otp-2')">
-              <input type="text" id="otp-2" class="otp-input" maxLength="1" pattern="[0-9]" required oninput="focusNextOtp(this, 'otp-3')">
-              <input type="text" id="otp-3" class="otp-input" maxLength="1" pattern="[0-9]" required oninput="focusNextOtp(this, 'otp-4')">
-              <input type="text" id="otp-4" class="otp-input" maxLength="1" pattern="[0-9]" required oninput="focusNextOtp(this, 'otp-5')">
-              <input type="text" id="otp-5" class="otp-input" maxLength="1" pattern="[0-9]" required oninput="focusNextOtp(this, 'otp-6')">
-              <input type="text" id="otp-6" class="otp-input" maxLength="1" pattern="[0-9]" required>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="otp-1" class="otp-input" maxLength="1" required oninput="focusNextOtp(this, 'otp-2')">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="otp-2" class="otp-input" maxLength="1" required oninput="focusNextOtp(this, 'otp-3')">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="otp-3" class="otp-input" maxLength="1" required oninput="focusNextOtp(this, 'otp-4')">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="otp-4" class="otp-input" maxLength="1" required oninput="focusNextOtp(this, 'otp-5')">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="otp-5" class="otp-input" maxLength="1" required oninput="focusNextOtp(this, 'otp-6')">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="otp-6" class="otp-input" maxLength="1" required>
             </div>
             <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 24px;">Verify Email OTP</button>
             
@@ -451,7 +451,7 @@
             </div>
             <div class="form-group">
               <label class="form-label" for="auth-reset-code">6-Digit Reset Code</label>
-              <input type="text" id="auth-reset-code" class="form-input" required maxLength="6" placeholder="e.g. 123456">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="auth-reset-code" class="form-input" required maxLength="6" placeholder="e.g. 123456">
             </div>
             <div class="form-group">
               <label class="form-label" for="auth-reset-password">New Password</label>
