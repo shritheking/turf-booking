@@ -4,6 +4,13 @@ const http = require('http');
 const tls = require('tls');
 const dgram = require('dgram');
 
+let nodemailer;
+try {
+  nodemailer = require('nodemailer');
+} catch (e) {
+  // Nodemailer not installed locally
+}
+
 const projectDir = __dirname;
 const dbPath = path.join(projectDir, 'users.json');
 
@@ -222,79 +229,113 @@ function writeUsers(users) {
   fs.writeFileSync(dbPath, JSON.stringify(users, null, 2), 'utf-8');
 }
 
-// Custom SMTP client using raw TLS socket (No npm dependencies)
+// Custom SMTP client using Nodemailer (with dynamic fallback)
 function sendSMTPEmail({ host, port, user, pass, from, to, subject, body }) {
-  return new Promise((resolve, reject) => {
-    const socket = tls.connect({ host, port, servername: host, family: 4, rejectUnauthorized: false }, () => {
-      // Socket connected
-    });
-
-    let step = 0;
-    let timeout = setTimeout(() => {
-      socket.destroy();
-      reject(new Error('SMTP connection timed out'));
-    }, 15000);
-
-    socket.on('data', (data) => {
-      const response = data.toString();
-      const code = response.substring(0, 3);
-      
-      if (step === 0 && code === '220') {
-        socket.write('EHLO localhost\r\n');
-        step = 1;
-      } else if (step === 1 && code === '250') {
-        if (response.includes('\n250 ') || !response.includes('250-')) {
-          socket.write('AUTH LOGIN\r\n');
-          step = 2;
+  if (nodemailer) {
+    let transporter;
+    if (host.includes('gmail.com')) {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: user,
+          pass: pass
         }
-      } else if (step === 2 && code === '334') {
-        socket.write(Buffer.from(user).toString('base64') + '\r\n');
-        step = 3;
-      } else if (step === 3 && code === '334') {
-        socket.write(Buffer.from(pass).toString('base64') + '\r\n');
-        step = 4;
-      } else if (step === 4 && code === '235') {
-        socket.write(`MAIL FROM:<${from}>\r\n`);
-        step = 5;
-      } else if (step === 5 && code === '250') {
-        socket.write(`RCPT TO:<${to}>\r\n`);
-        step = 6;
-      } else if (step === 6 && code === '250') {
-        socket.write('DATA\r\n');
-        step = 7;
-      } else if (step === 7 && code === '354') {
-        const mailContent = 
-          `From: ${from}\r\n` +
-          `To: ${to}\r\n` +
-          `Subject: ${subject}\r\n` +
-          `MIME-Version: 1.0\r\n` +
-          `Content-Type: text/html; charset=utf-8\r\n\r\n` +
-          `${body}\r\n` +
-          `.\r\n`;
-        socket.write(mailContent);
-        step = 8;
-      } else if (step === 8 && code === '250') {
-        socket.write('QUIT\r\n');
-        step = 9;
-      } else if (step === 9 && (code === '221' || code === '250')) {
+      });
+    } else {
+      transporter = nodemailer.createTransport({
+        host: host,
+        port: port,
+        secure: port === 465,
+        auth: {
+          user: user,
+          pass: pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
+
+    return transporter.sendMail({
+      from: from,
+      to: to,
+      subject: subject,
+      html: body
+    });
+  } else {
+    // Dynamic fallback when running locally without npm packages
+    return new Promise((resolve, reject) => {
+      const socket = tls.connect({ host, port, servername: host, family: 4, rejectUnauthorized: false }, () => {
+        // Socket connected
+      });
+
+      let step = 0;
+      let timeout = setTimeout(() => {
+        socket.destroy();
+        reject(new Error('SMTP connection timed out'));
+      }, 15000);
+
+      socket.on('data', (data) => {
+        const response = data.toString();
+        const code = response.substring(0, 3);
+        
+        if (step === 0 && code === '220') {
+          socket.write('EHLO localhost\r\n');
+          step = 1;
+        } else if (step === 1 && code === '250') {
+          if (response.includes('\n250 ') || !response.includes('250-')) {
+            socket.write('AUTH LOGIN\r\n');
+            step = 2;
+          }
+        } else if (step === 2 && code === '334') {
+          socket.write(Buffer.from(user).toString('base64') + '\r\n');
+          step = 3;
+        } else if (step === 3 && code === '334') {
+          socket.write(Buffer.from(pass).toString('base64') + '\r\n');
+          step = 4;
+        } else if (step === 4 && code === '235') {
+          socket.write(`MAIL FROM:<${from}>\r\n`);
+          step = 5;
+        } else if (step === 5 && code === '250') {
+          socket.write(`RCPT TO:<${to}>\r\n`);
+          step = 6;
+        } else if (step === 6 && code === '250') {
+          socket.write('DATA\r\n');
+          step = 7;
+        } else if (step === 7 && code === '354') {
+          const mailContent = 
+            `From: ${from}\r\n` +
+            `To: ${to}\r\n` +
+            `Subject: ${subject}\r\n` +
+            `MIME-Version: 1.0\r\n` +
+            `Content-Type: text/html; charset=utf-8\r\n\r\n` +
+            `${body}\r\n` +
+            `.\r\n`;
+          socket.write(mailContent);
+          step = 8;
+        } else if (step === 8 && code === '250') {
+          socket.write('QUIT\r\n');
+          step = 9;
+        } else if (step === 9 && (code === '221' || code === '250')) {
+          clearTimeout(timeout);
+          socket.end();
+          resolve(true);
+        }
+      });
+
+      socket.on('error', (err) => {
         clearTimeout(timeout);
-        socket.end();
-        resolve(true);
-      }
-    });
+        reject(err);
+      });
 
-    socket.on('error', (err) => {
-      clearTimeout(timeout);
-      reject(err);
+      socket.on('end', () => {
+        clearTimeout(timeout);
+        if (step < 9) {
+          reject(new Error('SMTP connection closed prematurely by server'));
+        }
+      });
     });
-
-    socket.on('end', () => {
-      clearTimeout(timeout);
-      if (step < 9) {
-        reject(new Error('SMTP connection closed prematurely by server'));
-      }
-    });
-  });
+  }
 }
 
 function readJsonBody(req) {
