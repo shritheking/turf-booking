@@ -1,0 +1,10 @@
+{
+  "name": "goat-turf-booking",
+  "version": "1.0.0",
+  "description": "GOAT Turf booking system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
