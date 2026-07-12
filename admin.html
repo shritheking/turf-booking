@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GOAT Turf Madurai - Admin Portal</title>
+  <meta name="description" content="Secure administrative gateway console for GOAT Turf Madurai.">
+  <link rel="stylesheet" href="index.css">
+  <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+  <!-- Load server environment variables dynamically -->
+  <script src="env.js"></script>
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Header -->
+  <header id="main-header">
+    <div class="container nav-container">
+      <div class="logo-wrapper">
+        <img src="assets/images/logo.jpg" alt="GOAT Turf Logo" class="logo-img">
+        <span class="logo-text">GOAT<span>TURF</span> <span style="font-size: 13px; font-weight: 500; color: var(--google-blue); border-left: 1px solid var(--border-color); padding-left: 10px; margin-left: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Admin Console</span></span>
+      </div>
+      <nav id="navbar">
+        <ul>
+          <li><a href="index.html" style="font-weight: 500; font-size: 14px;">Go to booking website &rarr;</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN ADMIN CONSOLE WRAPPER -->
+  <main style="min-height: calc(100vh - 160px); display: flex; align-items: center; justify-content: center; background-color: var(--bg-secondary);">
+    <div class="container" style="width: 100%;">
+      
+      <!-- ADMIN SIGN-IN PORTAL OVERLAY -->
+      <div id="admin-login-view" style="display:flex; justify-content:center; align-items:center; min-height:400px; padding:40px 0;">
+        <div class="admin-login-card">
+          <div class="login-logo-wrapper">
+            <img src="assets/images/logo.jpg" alt="GOAT Turf Logo" class="login-logo-img">
+            <h3 class="login-title">Sign in</h3>
+            <p class="login-subtitle">to GOAT Turf Admin Console</p>
+          </div>
+          
+          <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+            <div class="form-group">
+              <input type="email" id="admin-username" class="form-input login-input" placeholder="Email (admin@goatturf.com)" required>
+            </div>
+            <div class="form-group">
+              <input type="password" id="admin-password" class="form-input login-input" placeholder="Password" required>
+            </div>
+            <div class="login-actions-row">
+              <a href="#" class="login-forgot-link" onclick="showToast('Default details: admin@goatturf.com / admin123')">Forgot email?</a>
+              <button type="submit" class="btn-primary login-submit-btn">Next</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ADMIN REAL DASHBOARD CONTROLS (Hidden until login) -->
+      <div id="admin-dashboard-view" style="display:none; background-color: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 30px; margin: 40px auto; box-shadow: var(--shadow-sm);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+          <div>
+            <h2 style="font-size:24px; font-weight:500;">Console Home</h2>
+            <p style="color:var(--text-secondary); font-size:13px;">Manage real-time turf registrations and hourly block states.</p>
+          </div>
+          <button class="btn-secondary" style="padding:8px 16px; font-size:13px;" onclick="handleAdminLogout()">Sign out</button>
+        </div>
+
+        <!-- Metrics cards -->
+        <div class="admin-grid">
+          <div class="stat-card">
+            <div class="form-label">Total Revenue</div>
+            <div class="stat-num" id="admin-stat-revenue">₹0</div>
+          </div>
+          <div class="stat-card">
+            <div class="form-label">Total Confirmed</div>
+            <div class="stat-num" id="admin-stat-bookings">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="form-label">Unique Customers</div>
+            <div class="stat-num" id="admin-stat-users">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="form-label">Active Blocked Slots</div>
+            <div class="stat-num" id="admin-stat-blocks">0</div>
+          </div>
+        </div>
+
+        <!-- Bookings table -->
+        <h3 style="font-size: 16px; font-weight: 500; margin-bottom: 12px; color: var(--text-primary);">Reservation Log</h3>
+        <div class="admin-table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Customer</th>
+                <th>Sport & Ground</th>
+                <th>Schedule</th>
+                <th>Paid & Transaction</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-bookings-table-body">
+              <!-- Dynamically rendered rows by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Maintenance panel -->
+        <div class="admin-actions-card">
+          <h3 style="font-size: 16px; font-weight: 500; margin-bottom: 6px; color: var(--text-primary);">Turf Controls</h3>
+          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Wipe data or apply force-blocks to specific hours for local events/maintenance.</p>
+          
+          <div class="admin-actions-grid">
+            <!-- Block form -->
+            <div>
+              <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: var(--google-blue);">Block Custom Hour Slot</h4>
+              <div class="form-group">
+                <label class="form-label" for="block-date">Match Date</label>
+                <input type="date" id="block-date" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="block-sport">Sport</label>
+                <select id="block-sport" class="form-input" onchange="updateAdminGroundOptions()">
+                  <option value="football">Football</option>
+                  <option value="cricket">Cricket</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="block-ground">Ground configuration</label>
+                <select id="block-ground" class="form-input">
+                  <!-- Dynamically populated options -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="block-hour">Timing (Hour)</label>
+                <select id="block-hour" class="form-input">
+                  <!-- Generated hours -->
+                </select>
+              </div>
+              <button class="btn-primary" style="padding: 10px; width: 100%; justify-content: center; font-size: 13px;" onclick="adminBlockSlot()">
+                Block Slot Hour
+              </button>
+            </div>
+
+            <!-- Blocked lists or reset actions -->
+            <div style="border-left: 1px solid var(--border-color); padding-left: 24px;">
+              <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: var(--google-red);">Developer Simulation Utilities</h4>
+              <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Use these commands to easily populate fake logs to check the admin metrics and dashboard reports, or reset the local database.</p>
+              
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn-secondary" style="font-size: 13px; padding: 10px; justify-content: center;" onclick="adminPopulateMockData()">
+                  Load Fake Bookings & Blocks
+                </button>
+                <button class="btn-cancel-ticket" style="padding: 10px; font-size: 13px; text-align: center; border-radius: var(--radius-sm);" onclick="adminResetAllData()">
+                  Wipe Entire Workspace Database
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer base (Small and basic footer for admin) -->
+  <footer style="background-color: var(--bg-primary); border-top: 1px solid var(--border-color); padding: 20px 0;">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <p style="color: var(--text-secondary); font-size: 12px;">&copy; 2026 GOAT Turf Madurai. Secure Administration Console.</p>
+      <p style="color: var(--text-secondary); font-size: 12px;"><a href="https://wa.me/916379140067?text=Hi%20NEXTGEN,%20I'm%20interested%20in%20website%20creation." target="_blank" style="color: var(--google-blue); text-decoration: none; font-weight: 500;">Created by NEXTGEN</a></p>
+    </div>
+  </footer>
+
+  <!-- Admin JS Logic -->
+  <script src="admin.js"></script>
+</body>
+</html>
