@@ -238,6 +238,7 @@ function sendSMTPEmail({ host, port, user, pass, from, to, subject, body }) {
         host: 'smtp.gmail.com',
         port: 587,
         secure: false,
+        connectionTimeout: 3000,
         auth: {
           user: user,
           pass: pass
@@ -251,6 +252,7 @@ function sendSMTPEmail({ host, port, user, pass, from, to, subject, body }) {
         host: host,
         port: port,
         secure: port === 465,
+        connectionTimeout: 3000,
         auth: {
           user: user,
           pass: pass
