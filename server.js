@@ -49,6 +49,7 @@ const envVars = {
   EMAIL_PASS: process.env.EMAIL_PASS || '',
   EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.gmail.com',
   EMAIL_PORT: process.env.EMAIL_PORT || '465',
+  MAIL_SCRIPT_URL: process.env.MAIL_SCRIPT_URL || '',
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || ''
 };
@@ -231,6 +232,23 @@ function writeUsers(users) {
 
 // Custom SMTP client using Nodemailer (with dynamic fallback)
 function sendSMTPEmail({ host, port, user, pass, from, to, subject, body }) {
+  if (envVars.MAIL_SCRIPT_URL) {
+    return fetch(envVars.MAIL_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, body })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.success) {
+        console.log('[PASS] Email successfully sent via Google Apps Script Web App!');
+        return true;
+      } else {
+        throw new Error('Google Apps Script returned failure status');
+      }
+    });
+  }
+
   if (nodemailer) {
     let transporter;
     if (host.includes('gmail.com')) {
