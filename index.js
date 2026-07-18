@@ -215,27 +215,17 @@ function initBookingFilters() {
   const typeSelect = document.getElementById('booking-slot-type');
   const monthSelect = document.getElementById('booking-month');
 
-  // Populate Month select dropdown options (excluding current month!)
+  // Configure Month calendar input (excluding current month!)
   if (monthSelect) {
-    monthSelect.innerHTML = '';
-    const monthsNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const current = new Date(serverTime);
-    
-    // Add the next 3 months (starting from next month, i.e., i = 1)
-    for (let i = 1; i <= 3; i++) {
-      const tempDate = new Date(current.getFullYear(), current.getMonth() + i, 1);
-      const year = tempDate.getFullYear();
-      const monthNum = tempDate.getMonth();
-      const label = `${monthsNames[monthNum]} ${year}${i === 1 ? ' (Next Month)' : ''}`;
-      const value = `${year}-${String(monthNum + 1).padStart(2, '0')}`;
-      
-      const opt = document.createElement('option');
-      opt.value = value;
-      opt.innerText = label;
-      monthSelect.appendChild(opt);
-    }
-    
-    state.selectedMonth = monthSelect.value;
+    const nextMonthDate = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+    const year = nextMonthDate.getFullYear();
+    const monthNum = nextMonthDate.getMonth() + 1; // 1-indexed
+    const nextMonthStr = `${year}-${String(monthNum).padStart(2, '0')}`;
+
+    monthSelect.min = nextMonthStr;
+    monthSelect.value = nextMonthStr;
+    state.selectedMonth = nextMonthStr;
   }
   
   if (dateInput) {
