@@ -321,24 +321,34 @@ function formatSlotTime(hour) {
 }
 
 // Blocks check
-function checkSlotBlocked(date, sport, ground, hour) {
-  return state.adminBlocks.some(block => 
-    block.date === date && 
-    block.sport === sport && 
-    block.ground === ground && 
-    parseInt(block.hour) === hour
-  );
+function checkSlotBlocked(dateOrMonth, sport, ground, hour) {
+  return state.adminBlocks.some(block => {
+    const isSameGround = block.sport === sport && block.ground === ground;
+    const isSameHour = parseInt(block.hour) === hour;
+    if (!isSameGround || !isSameHour) return false;
+
+    if (state.selectedSlotType === 'month') {
+      return block.date.startsWith(dateOrMonth);
+    } else {
+      return block.date === dateOrMonth || block.date.startsWith(dateOrMonth.substring(0, 7));
+    }
+  });
 }
 
 // Bookings check
-function checkSlotBooked(date, sport, ground, hour) {
-  return state.bookings.some(booking => 
-    booking.date === date && 
-    booking.sport === sport && 
-    booking.ground === ground && 
-    booking.slots.includes(hour) &&
-    booking.status === 'confirmed'
-  );
+function checkSlotBooked(dateOrMonth, sport, ground, hour) {
+  return state.bookings.some(booking => {
+    const isSameGround = booking.sport === sport && booking.ground === ground;
+    const hasHour = booking.slots.includes(hour);
+    const isConfirmed = booking.status === 'confirmed';
+    if (!isSameGround || !hasHour || !isConfirmed) return false;
+
+    if (state.selectedSlotType === 'month') {
+      return booking.date.startsWith(dateOrMonth);
+    } else {
+      return booking.date === dateOrMonth || booking.date.startsWith(dateOrMonth.substring(0, 7));
+    }
+  });
 }
 
 function toggleSlotSelection(hour, slotElement) {
@@ -371,22 +381,48 @@ function updateSummaryBar() {
   const groundLabel = GROUND_CONFIG[state.currentSport].options.find(o => o.id === state.currentGround).label;
   document.getElementById('summary-sport-desc').innerText = `${sportTitle} - ${groundLabel}`;
 
-  const dateFormatted = new Date(state.selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const timings = state.selectedSlots.map(h => `${h > 12 ? h-12 : h} ${h>=12 ? 'PM':'AM'}`).join(', ');
-  document.getElementById('summary-slots-desc').innerText = `${dateFormatted} | Selected: ${state.selectedSlots.length} hrs (${timings})`;
+  
+  if (state.selectedSlotType === 'month') {
+    const details = getSelectedMonthDetails();
+    document.getElementById('summary-slots-desc').innerText = `${details.label} (${details.days} Days) | Selected: ${state.selectedSlots.length} hrs (${timings})`;
+  } else {
+    const dateFormatted = new Date(state.selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    document.getElementById('summary-slots-desc').innerText = `${dateFormatted} | Selected: ${state.selectedSlots.length} hrs (${timings})`;
+  }
 
   const subtotal = calculateSubtotal();
   document.getElementById('summary-price-amount').innerText = `₹${subtotal}`;
+}
+
+function getSelectedMonthDetails() {
+  if (!state.selectedMonth) return { label: '', days: 1 };
+  
+  const [yearStr, monthStr] = state.selectedMonth.split('-');
+  const year = parseInt(yearStr);
+  const monthNum = parseInt(monthStr) - 1;
+  
+  const monthsNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const label = `${monthsNames[monthNum]} ${year}`;
+  const days = new Date(year, monthNum + 1, 0).getDate();
+  
+  return { label, days, year, monthNum };
 }
 
 function calculateSubtotal() {
   const sportConfig = GROUND_CONFIG[state.currentSport];
   const groundOption = sportConfig.options.find(o => o.id === state.currentGround);
   
-  return state.selectedSlots.reduce((sum, hour) => {
+  const baseDayCost = state.selectedSlots.reduce((sum, hour) => {
     const rate = hour >= 18 ? groundOption.nightRate : groundOption.dayRate;
     return sum + rate;
   }, 0);
+
+  if (state.selectedSlotType === 'month') {
+    const details = getSelectedMonthDetails();
+    return baseDayCost * details.days;
+  }
+  return baseDayCost;
 }
 
 // Modal actions
@@ -404,11 +440,16 @@ function openCheckoutModal() {
   const groundOption = sportConfig.options.find(o => o.id === state.currentGround);
   document.getElementById('checkout-summary-sport').innerText = `${sportConfig.title} (${groundOption.label})`;
 
-  const dateFormatted = new Date(state.selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  document.getElementById('checkout-summary-date').innerText = dateFormatted;
-
   const timings = state.selectedSlots.map(h => `${h > 12 ? h-12 : h}:00 ${h>=12 ? 'PM':'AM'}`).join(', ');
   document.getElementById('checkout-summary-slots').innerText = `${timings} (${state.selectedSlots.length} hr${state.selectedSlots.length > 1 ? 's' : ''})`;
+
+  if (state.selectedSlotType === 'month') {
+    const details = getSelectedMonthDetails();
+    document.getElementById('checkout-summary-date').innerText = `${details.label} (Whole Month - ${details.days} Days)`;
+  } else {
+    const dateFormatted = new Date(state.selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    document.getElementById('checkout-summary-date').innerText = dateFormatted;
+  }
 
   const subtotal = calculateSubtotal();
   const tax = Math.round(subtotal * 0.18);
@@ -834,7 +875,7 @@ function triggerPayment(e) {
     "notes": {
       "sport": state.currentSport,
       "ground": state.currentGround,
-      "date": state.selectedDate,
+      "date": state.selectedSlotType === 'month' ? `${state.selectedMonth} (Whole Month)` : state.selectedDate,
       "slots": state.selectedSlots.join(',')
     },
     "theme": {
@@ -865,13 +906,13 @@ function completeRealPayment(paymentId, name, phone, email) {
 
   const newBooking = {
     id: bookingId,
-    paymentId: paymentId, // Record transaction reference
+    paymentId: paymentId,
     customerName: name,
     customerPhone: phone,
     customerEmail: email,
     sport: state.currentSport,
     ground: state.currentGround,
-    date: state.selectedDate,
+    date: state.selectedSlotType === 'month' ? `${state.selectedMonth} (Whole Month)` : state.selectedDate,
     slots: [...state.selectedSlots],
     subtotal: subtotal,
     tax: tax,
@@ -976,7 +1017,13 @@ function renderMyBookings() {
     const sportName = GROUND_CONFIG[booking.sport].title;
     const groundLabel = GROUND_CONFIG[booking.sport].options.find(o => o.id === booking.ground).label;
     
-    const dateFormatted = new Date(booking.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    let dateFormatted;
+    if (booking.date.includes('(Whole Month)')) {
+      dateFormatted = booking.date;
+    } else {
+      const parsedDate = new Date(booking.date);
+      dateFormatted = isNaN(parsedDate.getTime()) ? booking.date : parsedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    }
     const times = booking.slots.map(h => `${h > 12 ? h-12 : h}:00 ${h>=12 ? 'PM':'AM'}`).join(', ');
 
     card.innerHTML = `
