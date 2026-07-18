@@ -32,12 +32,15 @@ const state = {
   authEmail: ''      // Temporary email stored during registration flows
 };
 
+const isLocalServer = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '';
+const API_BASE = isLocalServer ? '' : 'https://turf-booking-dti4.onrender.com';
+
 // Server Time (Synchronized via NTP)
 let serverTime = new Date();
 
 async function fetchServerTime() {
   try {
-    const res = await fetch('/api/time');
+    const res = await fetch(API_BASE + '/api/time');
     const data = await res.json();
     if (data.success) {
       serverTime = new Date(data.ntpTime);
@@ -50,12 +53,12 @@ async function fetchServerTime() {
 
 // Sync local storage state with the backend server database
 async function syncWithServer() {
-  if (window.location.protocol === 'file:') return;
+  if (window.location.protocol === 'file:' && API_BASE === '') return;
 
   try {
     const [bookingsRes, blocksRes] = await Promise.all([
-      fetch('/api/bookings').then(r => r.json()),
-      fetch('/api/blocks').then(r => r.json())
+      fetch(API_BASE + '/api/bookings').then(r => r.json()),
+      fetch(API_BASE + '/api/blocks').then(r => r.json())
     ]);
 
     if (bookingsRes && bookingsRes.success && bookingsRes.bookings) {
@@ -656,7 +659,7 @@ async function handleAuthSigninSubmit(e) {
   const password = document.getElementById('auth-signin-password').value;
 
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(API_BASE + '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -705,7 +708,7 @@ function handleAuthSignupSubmit(e) {
   }
 
   // Trigger registration request in background
-  fetch('/api/auth/signup', {
+  fetch(API_BASE + '/api/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email, phone, password })
@@ -746,7 +749,7 @@ async function handleAuthOtpSubmit(e) {
   const otpCode = codes.join('');
 
   try {
-    const res = await fetch('/api/auth/verify-otp', {
+    const res = await fetch(API_BASE + '/api/auth/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: state.authEmail, otp: otpCode })
@@ -772,7 +775,7 @@ async function resendEmailOtp() {
   }
 
   try {
-    const res = await fetch('/api/auth/resend-otp', {
+    const res = await fetch(API_BASE + '/api/auth/resend-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: state.authEmail })
@@ -809,7 +812,7 @@ function handleAuthForgotSubmit(e) {
   }
 
   // Trigger forgot password request in background
-  fetch('/api/auth/forgot-password', {
+  fetch(API_BASE + '/api/auth/forgot-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
@@ -853,7 +856,7 @@ async function handleAuthResetSubmit(e) {
   }
 
   try {
-    const res = await fetch('/api/auth/reset-password', {
+    const res = await fetch(API_BASE + '/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code, newPassword })
@@ -1033,8 +1036,8 @@ function completeRealPayment(paymentId, name, phone, email) {
   saveLocalStorage();
 
   // Post booking to backend server database
-  if (window.location.protocol !== 'file:') {
-    fetch('/api/bookings', {
+  if (window.location.protocol !== 'file:' || API_BASE !== '') {
+    fetch(API_BASE + '/api/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newBooking)
