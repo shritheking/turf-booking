@@ -73,6 +73,9 @@ async function syncWithServer() {
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
+  // Reset window scroll position to top of the page on refresh
+  window.scrollTo(0, 0);
+  
   if (window.location.protocol === 'file:') {
     setTimeout(() => {
       showToast('App loaded via file://. Please open http://localhost:8080 in your browser for login & booking to work.', 'error');
@@ -450,6 +453,38 @@ function toggleSlotSelection(hour, slotElement) {
   updateSummaryBar();
 }
 
+function formatSlotsAsRange(slots) {
+  if (!slots || slots.length === 0) return '';
+  const sorted = [...slots].map(Number).sort((a, b) => a - b);
+  
+  const ranges = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+  
+  for (let i = 1; i <= sorted.length; i++) {
+    if (i < sorted.length && sorted[i] === prev + 1) {
+      prev = sorted[i];
+    } else {
+      const end = prev + 1;
+      const startStr = formatHour(start);
+      const endStr = formatHour(end);
+      ranges.push(`${startStr} - ${endStr}`);
+      if (i < sorted.length) {
+        start = sorted[i];
+        prev = sorted[i];
+      }
+    }
+  }
+  return ranges.join(', ');
+}
+
+function formatHour(h) {
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  let displayHour = h % 12;
+  if (displayHour === 0) displayHour = 12;
+  return `${displayHour}:00 ${ampm}`;
+}
+
 // Update summary reservation values
 function updateSummaryBar() {
   const summaryBar = document.getElementById('summary-bar');
@@ -464,7 +499,7 @@ function updateSummaryBar() {
   const groundLabel = GROUND_CONFIG[state.currentSport].options.find(o => o.id === state.currentGround).label;
   document.getElementById('summary-sport-desc').innerText = `${sportTitle} - ${groundLabel}`;
 
-  const timings = state.selectedSlots.map(h => `${h > 12 ? h-12 : h} ${h>=12 ? 'PM':'AM'}`).join(', ');
+  const timings = formatSlotsAsRange(state.selectedSlots);
   
   if (state.selectedSlotType === 'month') {
     const details = getSelectedMonthDetails();
@@ -525,7 +560,7 @@ function openCheckoutModal() {
   document.getElementById('checkout-summary-sport').innerText = `${sportConfig.title} (${groundOption.label})`;
   document.getElementById('checkout-summary-type').innerText = state.selectedSlotType;
 
-  const timings = state.selectedSlots.map(h => `${h > 12 ? h-12 : h}:00 ${h>=12 ? 'PM':'AM'}`).join(', ');
+  const timings = formatSlotsAsRange(state.selectedSlots);
   document.getElementById('checkout-summary-slots').innerText = `${timings} (${state.selectedSlots.length} hr${state.selectedSlots.length > 1 ? 's' : ''})`;
 
   if (state.selectedSlotType === 'month') {
@@ -1012,7 +1047,7 @@ function completeRealPayment(paymentId, name, phone, email) {
   updateSummaryBar();
   renderSlotsGrid();
 
-  document.getElementById('checkout-form').reset();
+  closeCheckoutModal();
   switchView('mybookings');
 }
 
@@ -1106,7 +1141,7 @@ function renderMyBookings() {
       const parsedDate = new Date(booking.date);
       dateFormatted = isNaN(parsedDate.getTime()) ? booking.date : parsedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     }
-    const times = booking.slots.map(h => `${h > 12 ? h-12 : h}:00 ${h>=12 ? 'PM':'AM'}`).join(', ');
+    const times = formatSlotsAsRange(booking.slots);
 
     card.innerHTML = `
       <div class="ticket-header ${booking.sport}">

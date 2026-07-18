@@ -146,6 +146,38 @@ function renderAdminPanel() {
   document.getElementById('admin-stat-users').innerText = uniquePhones;
   document.getElementById('admin-stat-blocks').innerText = blockedSlotsCount;
 
+function formatSlotsAsRange(slots) {
+  if (!slots || slots.length === 0) return '';
+  const sorted = [...slots].map(Number).sort((a, b) => a - b);
+  
+  const ranges = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+  
+  for (let i = 1; i <= sorted.length; i++) {
+    if (i < sorted.length && sorted[i] === prev + 1) {
+      prev = sorted[i];
+    } else {
+      const end = prev + 1;
+      const startStr = formatHour(start);
+      const endStr = formatHour(end);
+      ranges.push(`${startStr} - ${endStr}`);
+      if (i < sorted.length) {
+        start = sorted[i];
+        prev = sorted[i];
+      }
+    }
+  }
+  return ranges.join(', ');
+}
+
+function formatHour(h) {
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  let displayHour = h % 12;
+  if (displayHour === 0) displayHour = 12;
+  return `${displayHour}:00 ${ampm}`;
+}
+
   // Render logs rows
   const tbody = document.getElementById('admin-bookings-table-body');
   tbody.innerHTML = '';
@@ -159,7 +191,7 @@ function renderAdminPanel() {
 
   sortedBookings.forEach(booking => {
     const dateFormatted = new Date(booking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timings = booking.slots.map(h => `${h > 12 ? h-12 : h}:00 ${h>=12 ? 'PM':'AM'}`).join(', ');
+    const timings = formatSlotsAsRange(booking.slots);
     const groundLabel = GROUND_CONFIG[booking.sport].options.find(o => o.id === booking.ground).label;
 
     const tr = document.createElement('tr');
