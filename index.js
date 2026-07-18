@@ -1172,7 +1172,7 @@ function renderMyBookings() {
       <div class="ticket-footer">
         <div>
           <div class="ticket-price-lbl">Transaction Total</div>
-          <div class="ticket-price-val">₹${booking.total}</div>
+          <div class="ticket-price-val">₹${Number(booking.total).toFixed(2)}</div>
         </div>
         
         <!-- Cancel Ticket buttons are hidden because Refund is not allowed -->

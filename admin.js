@@ -141,7 +141,7 @@ function renderAdminPanel() {
   const uniquePhones = new Set(state.bookings.map(b => b.customerPhone)).size;
   const blockedSlotsCount = state.adminBlocks.length;
 
-  document.getElementById('admin-stat-revenue').innerText = `₹${revenueTotal.toLocaleString('en-IN')}`;
+  document.getElementById('admin-stat-revenue').innerText = `₹${Number(revenueTotal).toFixed(2)}`;
   document.getElementById('admin-stat-bookings').innerText = bookingsConfirmed;
   document.getElementById('admin-stat-users').innerText = uniquePhones;
   document.getElementById('admin-stat-blocks').innerText = blockedSlotsCount;
@@ -210,7 +210,7 @@ function formatHour(h) {
         <div style="font-size:11px; color:var(--google-blue);">${timings}</div>
       </td>
       <td>
-        <div>₹${booking.total}</div>
+        <div>₹${Number(booking.total).toFixed(2)}</div>
         <div style="font-size:10px; color:var(--text-secondary); font-family:monospace;">${booking.paymentId || 'N/A'}</div>
       </td>
       <td>
