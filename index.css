@@ -1152,10 +1152,28 @@ tr:last-child td {
   margin-top: 16px;
 }
 
-/* Responsive Booking Summary Overrides */
-@media (max-width: 600px) {
+/* Responsive Booking Summary Grid & Modal Overrides */
+.summary-columns-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
   .summary-columns-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  #checkout-modal .modal-content {
+    border-radius: var(--radius-md) !important;
+    max-width: 95% !important;
+    margin: 10px auto !important;
+  }
+
+  #checkout-modal .modal-body {
+    padding: 16px !important;
   }
 }
 
