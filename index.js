@@ -22,6 +22,7 @@ const state = {
   currentSport: 'football',
   currentGround: 'full',
   selectedDate: '',
+  selectedSlotType: 'day', // 'day' or 'night'
   selectedSlots: [], // Array of hours (integers)
   bookings: [],      // Array of booking objects
   adminBlocks: [],   // Array of admin block objects {date, sport, ground, hour}
@@ -58,8 +59,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadLocalStorage();
   await fetchServerTime();
   setDefaultDate();
+  initBookingFilters();
   renderGroundSelectors();
-  renderDateSlider();
   renderSlotsGrid();
   renderMyBookings();
   updateAuthNavUI();
@@ -208,50 +209,43 @@ function setSport(sportName) {
   renderSlotsGrid();
 }
 
-// Render Date slider cards
-function renderDateSlider() {
-  const slider = document.getElementById('date-slider');
-  slider.innerHTML = '';
-
-  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const today = new Date(serverTime);
-
-  for (let i = 0; i < 7; i++) {
-    const dateObj = new Date(serverTime);
-    dateObj.setDate(today.getDate() + i);
-
-    const dateStr = formatDateString(dateObj);
-    const isSelected = dateStr === state.selectedDate;
-
-    const card = document.createElement('div');
-    card.className = `date-card ${isSelected ? 'active' : ''}`;
-    card.dataset.date = dateStr;
-    card.onclick = () => selectDate(dateStr, card);
-
-    const dayName = i === 0 ? 'Today' : daysOfWeek[dateObj.getDay()];
-    const dateNum = dateObj.getDate();
-    const monthName = months[dateObj.getMonth()];
-
-    card.innerHTML = `
-      <div class="date-day">${dayName}</div>
-      <div class="date-number">${dateNum}</div>
-      <div class="date-month">${monthName}</div>
-    `;
-
-    slider.appendChild(card);
+// Initialize filters values and min constraints
+function initBookingFilters() {
+  const dateInput = document.getElementById('booking-date');
+  const typeSelect = document.getElementById('booking-slot-type');
+  
+  if (dateInput) {
+    dateInput.value = state.selectedDate;
+    dateInput.min = formatDateString(serverTime);
+  }
+  if (typeSelect) {
+    typeSelect.value = state.selectedSlotType;
   }
 }
+
+// Update filter values and re-render slots
+function changeBookingFilters() {
+  const dateInput = document.getElementById('booking-date');
+  const typeSelect = document.getElementById('booking-slot-type');
+
+  if (dateInput && dateInput.value) {
+    state.selectedDate = dateInput.value;
+  }
+  if (typeSelect) {
+    state.selectedSlotType = typeSelect.value;
+  }
+
+  state.selectedSlots = [];
+  updateSummaryBar();
+  renderSlotsGrid();
+}
+
+// Dummy function to keep compatibility
+function renderDateSlider() {}
 
 function selectDate(dateStr, cardElement) {
   state.selectedDate = dateStr;
   state.selectedSlots = [];
-
-  document.querySelectorAll('.date-card').forEach(card => {
-    card.classList.remove('active');
-  });
-  cardElement.classList.add('active');
-
   updateSummaryBar();
   renderSlotsGrid();
 }
@@ -264,9 +258,9 @@ function renderSlotsGrid() {
   const sportConfig = GROUND_CONFIG[state.currentSport];
   const groundOption = sportConfig.options.find(o => o.id === state.currentGround);
   
-  // Timing range: 5:00 AM to 11:00 PM (hourly blocks)
-  const startHour = 5;
-  const endHour = 22;
+  // Timing range: filtered by Slot Type (Day: 5 AM - 6 PM, Night: 6 PM - 11 PM)
+  const startHour = state.selectedSlotType === 'day' ? 5 : 18;
+  const endHour = state.selectedSlotType === 'day' ? 17 : 22;
 
   const todayStr = formatDateString(serverTime);
   const currentHour = serverTime.getHours();
