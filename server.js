@@ -13,6 +13,35 @@ try {
 
 const projectDir = __dirname;
 const dbPath = path.join(projectDir, 'users.json');
+const bookingsPath = path.join(projectDir, 'bookings.json');
+const blocksPath = path.join(projectDir, 'blocks.json');
+
+// Helpers to read and write databases
+function readBookings() {
+  try {
+    if (!fs.existsSync(bookingsPath)) fs.writeFileSync(bookingsPath, '[]', 'utf-8');
+    return JSON.parse(fs.readFileSync(bookingsPath, 'utf-8'));
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeBookings(bookings) {
+  fs.writeFileSync(bookingsPath, JSON.stringify(bookings, null, 2), 'utf-8');
+}
+
+function readBlocks() {
+  try {
+    if (!fs.existsSync(blocksPath)) fs.writeFileSync(blocksPath, '[]', 'utf-8');
+    return JSON.parse(fs.readFileSync(blocksPath, 'utf-8'));
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeBlocks(blocks) {
+  fs.writeFileSync(blocksPath, JSON.stringify(blocks, null, 2), 'utf-8');
+}
 
 console.log('--- STARTING VALIDATION ---');
 
@@ -739,6 +768,80 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, message: 'Incorrect or expired reset verification code.' }));
     }
+  }
+
+  // 6. BOOKINGS ROUTE (GET & POST)
+  if (reqUrl === '/api/bookings') {
+    if (req.method === 'GET') {
+      const bookings = readBookings();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, bookings }));
+      return;
+    } else if (req.method === 'POST') {
+      const data = await readJsonBody(req);
+      if (!data || !data.sport || !data.ground || !data.date || !data.slots || !data.customerName || !data.customerEmail) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Missing required booking fields.' }));
+        return;
+      }
+      const bookings = readBookings();
+      bookings.push(data);
+      writeBookings(bookings);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, booking: data }));
+      return;
+    }
+  }
+
+  // 7. BLOCKS ROUTE (GET & POST & DELETE)
+  if (reqUrl === '/api/blocks') {
+    if (req.method === 'GET') {
+      const blocks = readBlocks();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, blocks }));
+      return;
+    } else if (req.method === 'POST') {
+      const data = await readJsonBody(req);
+      if (!data || !data.sport || !data.ground || !data.date || data.hour === undefined) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Missing required block fields.' }));
+        return;
+      }
+      const blocks = readBlocks();
+      blocks.push(data);
+      writeBlocks(blocks);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, block: data }));
+      return;
+    }
+  }
+
+  if (reqUrl === '/api/blocks/delete' && req.method === 'POST') {
+    const data = await readJsonBody(req);
+    if (!data || !data.sport || !data.ground || !data.date || data.hour === undefined) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Missing required block fields.' }));
+      return;
+    }
+    let blocks = readBlocks();
+    blocks = blocks.filter(b => !(
+      b.date === data.date && 
+      b.sport === data.sport && 
+      b.ground === data.ground && 
+      parseInt(b.hour) === parseInt(data.hour)
+    ));
+    writeBlocks(blocks);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // 8. RESET DATA ROUTE
+  if (reqUrl === '/api/reset' && req.method === 'POST') {
+    writeBookings([]);
+    writeBlocks([]);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
     return;
   }
 

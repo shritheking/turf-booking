@@ -22,14 +22,38 @@ const state = {
   isAdminAuthenticated: false
 };
 
+// Sync state with the backend server database
+async function syncWithServer() {
+  if (window.location.protocol === 'file:') return;
+
+  try {
+    const [bookingsRes, blocksRes] = await Promise.all([
+      fetch('/api/bookings').then(r => r.json()),
+      fetch('/api/blocks').then(r => r.json())
+    ]);
+
+    if (bookingsRes && bookingsRes.success && bookingsRes.bookings) {
+      state.bookings = bookingsRes.bookings;
+    }
+    if (blocksRes && blocksRes.success && blocksRes.blocks) {
+      state.adminBlocks = blocksRes.blocks;
+    }
+
+    saveLocalStorage();
+  } catch (err) {
+    console.error('Server synchronization failed. Using cached local storage data.', err);
+  }
+}
+
 // Initialize Admin Portal
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if (window.location.protocol === 'file:') {
     setTimeout(() => {
       showToast('App loaded via file://. Please open http://localhost:8080/admin.html in your browser for full functionality.', 'error');
     }, 1000);
   }
   loadLocalStorage();
+  await syncWithServer();
   toggleAdminViews();
   if (state.isAdminAuthenticated) {
     renderAdminPanel();
@@ -252,8 +276,16 @@ function adminBlockSlot() {
 
   state.adminBlocks.push({ date, sport, ground, hour });
   saveLocalStorage();
+
+  if (window.location.protocol !== 'file:') {
+    fetch('/api/blocks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, sport, ground, hour })
+    }).catch(err => console.error('Failed to post block to server:', err));
+  }
+
   showToast('Slot blocked successfully.');
-  
   renderAdminPanel();
 }
 
@@ -263,6 +295,11 @@ function adminResetAllData() {
     localStorage.removeItem('gt_blocks');
     state.bookings = [];
     state.adminBlocks = [];
+    
+    if (window.location.protocol !== 'file:') {
+      fetch('/api/reset', { method: 'POST' })
+        .catch(err => console.error('Failed to reset data on server:', err));
+    }
     
     showToast('Database wiped.');
     renderAdminPanel();
@@ -315,6 +352,22 @@ function adminPopulateMockData() {
   state.bookings = mockBookings;
   state.adminBlocks = mockBlocks;
   saveLocalStorage();
+
+  if (window.location.protocol !== 'file:') {
+    Promise.all([
+      fetch('/api/reset', { method: 'POST' }),
+      ...mockBookings.map(b => fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(b)
+      })),
+      ...mockBlocks.map(b => fetch('/api/blocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(b)
+      }))
+    ]).catch(err => console.error('Failed to sync mock data to server:', err));
+  }
 
   showToast('Mock dashboard datasets successfully populated.');
   renderAdminPanel();

@@ -48,6 +48,29 @@ async function fetchServerTime() {
   }
 }
 
+// Sync local storage state with the backend server database
+async function syncWithServer() {
+  if (window.location.protocol === 'file:') return;
+
+  try {
+    const [bookingsRes, blocksRes] = await Promise.all([
+      fetch('/api/bookings').then(r => r.json()),
+      fetch('/api/blocks').then(r => r.json())
+    ]);
+
+    if (bookingsRes && bookingsRes.success && bookingsRes.bookings) {
+      state.bookings = bookingsRes.bookings;
+    }
+    if (blocksRes && blocksRes.success && blocksRes.blocks) {
+      state.adminBlocks = blocksRes.blocks;
+    }
+
+    saveLocalStorage();
+  } catch (err) {
+    console.error('Server synchronization failed. Using cached local storage data.', err);
+  }
+}
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
   if (window.location.protocol === 'file:') {
@@ -57,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   initScrollHeader();
   loadLocalStorage();
+  await syncWithServer();
   await fetchServerTime();
   setDefaultDate();
   initBookingFilters();
@@ -373,9 +397,16 @@ function checkSlotBlocked(dateOrMonth, sport, ground, hour) {
     if (!isSameGround || !isSameHour) return false;
 
     if (state.selectedSlotType === 'month') {
+      // Monthly slot: blocked if any block exists in this month (starts with YYYY-MM)
       return block.date.startsWith(dateOrMonth);
     } else {
-      return block.date === dateOrMonth || block.date.startsWith(dateOrMonth.substring(0, 7));
+      // Daily slot: blocked if exact match, or a monthly block exists for this month
+      const isMonthly = block.date.length <= 7 || block.date.includes('Whole Month');
+      if (isMonthly) {
+        return dateOrMonth.startsWith(block.date.substring(0, 7));
+      } else {
+        return block.date === dateOrMonth;
+      }
     }
   });
 }
@@ -384,14 +415,21 @@ function checkSlotBlocked(dateOrMonth, sport, ground, hour) {
 function checkSlotBooked(dateOrMonth, sport, ground, hour) {
   return state.bookings.some(booking => {
     const isSameGround = booking.sport === sport && booking.ground === ground;
-    const hasHour = booking.slots.includes(hour);
+    const hasHour = booking.slots.includes(hour) || booking.slots.includes(hour.toString()) || booking.slots.some(h => parseInt(h) === hour);
     const isConfirmed = booking.status === 'confirmed';
     if (!isSameGround || !hasHour || !isConfirmed) return false;
 
     if (state.selectedSlotType === 'month') {
+      // Monthly slot: booked if any booking exists in this month
       return booking.date.startsWith(dateOrMonth);
     } else {
-      return booking.date === dateOrMonth || booking.date.startsWith(dateOrMonth.substring(0, 7));
+      // Daily slot: booked if exact match, or a monthly booking exists for this month
+      const isMonthly = booking.date.length <= 7 || booking.date.includes('Whole Month');
+      if (isMonthly) {
+        return dateOrMonth.startsWith(booking.date.substring(0, 7));
+      } else {
+        return booking.date === dateOrMonth;
+      }
     }
   });
 }
@@ -968,6 +1006,15 @@ function completeRealPayment(paymentId, name, phone, email) {
 
   state.bookings.push(newBooking);
   saveLocalStorage();
+
+  // Post booking to backend server database
+  if (window.location.protocol !== 'file:') {
+    fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newBooking)
+    }).catch(err => console.error('Failed to post booking to server:', err));
+  }
 
   showToast(`Confirmed! Booking #${bookingId}`);
   
