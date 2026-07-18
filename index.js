@@ -213,6 +213,30 @@ function setSport(sportName) {
 function initBookingFilters() {
   const dateInput = document.getElementById('booking-date');
   const typeSelect = document.getElementById('booking-slot-type');
+  const monthSelect = document.getElementById('booking-month');
+
+  // Populate Month select dropdown options (excluding current month!)
+  if (monthSelect) {
+    monthSelect.innerHTML = '';
+    const monthsNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const current = new Date(serverTime);
+    
+    // Add the next 3 months (starting from next month, i.e., i = 1)
+    for (let i = 1; i <= 3; i++) {
+      const tempDate = new Date(current.getFullYear(), current.getMonth() + i, 1);
+      const year = tempDate.getFullYear();
+      const monthNum = tempDate.getMonth();
+      const label = `${monthsNames[monthNum]} ${year}${i === 1 ? ' (Next Month)' : ''}`;
+      const value = `${year}-${String(monthNum + 1).padStart(2, '0')}`;
+      
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.innerText = label;
+      monthSelect.appendChild(opt);
+    }
+    
+    state.selectedMonth = monthSelect.value;
+  }
   
   if (dateInput) {
     dateInput.value = state.selectedDate;
@@ -221,18 +245,46 @@ function initBookingFilters() {
   if (typeSelect) {
     typeSelect.value = state.selectedSlotType;
   }
+  
+  // Align DOM visibility on load
+  changeBookingSlotType();
+}
+
+// Toggle date picker or month picker visibility depending on Slot Type selected
+function changeBookingSlotType() {
+  const typeSelect = document.getElementById('booking-slot-type');
+  const dateGroup = document.getElementById('group-booking-date');
+  const monthGroup = document.getElementById('group-booking-month');
+
+  if (typeSelect) {
+    state.selectedSlotType = typeSelect.value;
+  }
+
+  if (state.selectedSlotType === 'month') {
+    if (dateGroup) dateGroup.style.display = 'none';
+    if (monthGroup) monthGroup.style.display = 'block';
+  } else {
+    if (dateGroup) dateGroup.style.display = 'block';
+    if (monthGroup) monthGroup.style.display = 'none';
+  }
+
+  changeBookingFilters();
 }
 
 // Update filter values and re-render slots
 function changeBookingFilters() {
   const dateInput = document.getElementById('booking-date');
   const typeSelect = document.getElementById('booking-slot-type');
+  const monthSelect = document.getElementById('booking-month');
 
+  if (typeSelect) {
+    state.selectedSlotType = typeSelect.value;
+  }
   if (dateInput && dateInput.value) {
     state.selectedDate = dateInput.value;
   }
-  if (typeSelect) {
-    state.selectedSlotType = typeSelect.value;
+  if (monthSelect && monthSelect.value) {
+    state.selectedMonth = monthSelect.value;
   }
 
   state.selectedSlots = [];
@@ -258,9 +310,9 @@ function renderSlotsGrid() {
   const sportConfig = GROUND_CONFIG[state.currentSport];
   const groundOption = sportConfig.options.find(o => o.id === state.currentGround);
   
-  // Timing range: filtered by Slot Type (Day: 5 AM - 6 PM, Night: 6 PM - 11 PM)
-  const startHour = state.selectedSlotType === 'day' ? 5 : 18;
-  const endHour = state.selectedSlotType === 'day' ? 17 : 22;
+  // Timing range: 5:00 AM to 11:00 PM (hourly blocks)
+  const startHour = 5;
+  const endHour = 22;
 
   const todayStr = formatDateString(serverTime);
   const currentHour = serverTime.getHours();
@@ -269,15 +321,18 @@ function renderSlotsGrid() {
     const slotTimeStr = formatSlotTime(hour);
     const rate = hour >= 18 ? groundOption.nightRate : groundOption.dayRate;
 
-    const isBlocked = checkSlotBlocked(state.selectedDate, state.currentSport, state.currentGround, hour);
-    const isBooked = checkSlotBooked(state.selectedDate, state.currentSport, state.currentGround, hour);
+    const checkKey = state.selectedSlotType === 'month' ? state.selectedMonth : state.selectedDate;
+    const isBlocked = checkSlotBlocked(checkKey, state.currentSport, state.currentGround, hour);
+    const isBooked = checkSlotBooked(checkKey, state.currentSport, state.currentGround, hour);
     const isSelected = state.selectedSlots.includes(hour);
 
     let isPast = false;
-    if (state.selectedDate < todayStr) {
-      isPast = true;
-    } else if (state.selectedDate === todayStr && hour <= currentHour) {
-      isPast = true;
+    if (state.selectedSlotType === 'day') {
+      if (state.selectedDate < todayStr) {
+        isPast = true;
+      } else if (state.selectedDate === todayStr && hour <= currentHour) {
+        isPast = true;
+      }
     }
 
     let statusClass = 'available';

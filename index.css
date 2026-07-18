@@ -419,6 +419,19 @@ section {
   margin-bottom: 30px;
 }
 
+.booking-filters-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 480px) {
+  .booking-filters-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .date-selector-label {
   font-size: 15px;
   font-weight: 500;
