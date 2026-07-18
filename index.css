@@ -1152,6 +1152,13 @@ tr:last-child td {
   margin-top: 16px;
 }
 
+/* Responsive Booking Summary Overrides */
+@media (max-width: 600px) {
+  .summary-columns-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Responsive Admin Console overrides */
 @media (max-width: 768px) {
   #admin-dashboard-view {

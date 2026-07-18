@@ -511,7 +511,8 @@ function calculateSubtotal() {
 // Modal actions
 function openCheckoutModal() {
   if (!state.currentUser) {
-    showToast('Please sign in to proceed with booking.', 'error');
+    state.proceedToCheckoutAfterLogin = true;
+    showToast('Please sign in or register to complete your reservation.', 'info');
     openAuthModal();
     return;
   }
@@ -522,18 +523,26 @@ function openCheckoutModal() {
   const sportConfig = GROUND_CONFIG[state.currentSport];
   const groundOption = sportConfig.options.find(o => o.id === state.currentGround);
   document.getElementById('checkout-summary-sport').innerText = `${sportConfig.title} (${groundOption.label})`;
+  document.getElementById('checkout-summary-type').innerText = state.selectedSlotType;
 
   const timings = state.selectedSlots.map(h => `${h > 12 ? h-12 : h}:00 ${h>=12 ? 'PM':'AM'}`).join(', ');
   document.getElementById('checkout-summary-slots').innerText = `${timings} (${state.selectedSlots.length} hr${state.selectedSlots.length > 1 ? 's' : ''})`;
 
   if (state.selectedSlotType === 'month') {
     const details = getSelectedMonthDetails();
-    document.getElementById('checkout-summary-date').innerText = `${details.label} (Whole Month - ${details.days} Days)`;
+    document.getElementById('checkout-summary-date').innerText = details.label;
   } else {
-    const dateFormatted = new Date(state.selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    document.getElementById('checkout-summary-date').innerText = dateFormatted;
+    // Convert YYYY-MM-DD to DD/MM/YYYY
+    const [y, m, d] = state.selectedDate.split('-');
+    document.getElementById('checkout-summary-date').innerText = `${d}/${m}/${y}`;
   }
 
+  // Populate User Profile Details
+  document.getElementById('summary-user-name').innerText = state.currentUser.name;
+  document.getElementById('summary-user-phone').innerText = state.currentUser.phone;
+  document.getElementById('summary-user-email').innerText = state.currentUser.email;
+
+  // Populate pricing details
   const subtotal = calculateSubtotal();
   const rawTotal = subtotal / 0.9764;
   const fee = rawTotal - subtotal;
@@ -542,22 +551,6 @@ function openCheckoutModal() {
   document.getElementById('checkout-summary-subtotal').innerText = `₹${subtotal}`;
   document.getElementById('checkout-summary-tax').innerText = `₹${fee.toFixed(2)}`;
   document.getElementById('checkout-summary-total').innerText = `₹${total.toFixed(2)}`;
-
-  // User Autofill Handling (They are guaranteed to be logged in here)
-  const signinPrompt = document.getElementById('checkout-signin-prompt');
-  const nameInput = document.getElementById('customer-name');
-  const phoneInput = document.getElementById('customer-phone');
-  const emailInput = document.getElementById('customer-email');
-
-  signinPrompt.style.display = 'none';
-  nameInput.value = state.currentUser.name;
-  phoneInput.value = state.currentUser.phone;
-  emailInput.value = state.currentUser.email;
-  
-  // Readonly properties to prevent mistakes
-  nameInput.readOnly = true;
-  phoneInput.readOnly = true;
-  emailInput.readOnly = true;
 }
 
 function closeCheckoutModal() {
@@ -608,6 +601,19 @@ function focusNextOtp(current, nextId) {
   }
 }
 
+function completeLoginSuccess(user) {
+  state.currentUser = user;
+  saveLocalStorage();
+  showToast(`Welcome back, ${user.name}!`);
+  closeAuthModal();
+  updateAuthNavUI();
+
+  if (state.proceedToCheckoutAfterLogin) {
+    state.proceedToCheckoutAfterLogin = false;
+    openCheckoutModal();
+  }
+}
+
 // 1. SIGN IN SUBMISSION
 async function handleAuthSigninSubmit(e) {
   e.preventDefault();
@@ -623,15 +629,7 @@ async function handleAuthSigninSubmit(e) {
 
     const data = await res.json();
     if (data.success) {
-      state.currentUser = data.user;
-      saveLocalStorage();
-      showToast(`Welcome back, ${data.user.name}!`);
-      closeAuthModal();
-      updateAuthNavUI();
-      
-      if (document.getElementById('checkout-modal').style.display === 'flex') {
-        openCheckoutModal();
-      }
+      completeLoginSuccess(data.user);
     } else {
       if (data.unverified) {
         showToast('Your email is unverified. Verifying code...', 'error');
@@ -721,15 +719,7 @@ async function handleAuthOtpSubmit(e) {
 
     const data = await res.json();
     if (data.success) {
-      state.currentUser = data.user;
-      saveLocalStorage();
-      showToast(`Welcome, ${data.user.name}! Your account is verified and logged in.`);
-      closeAuthModal();
-      updateAuthNavUI();
-
-      if (document.getElementById('checkout-modal').style.display === 'flex') {
-        openCheckoutModal();
-      }
+      completeLoginSuccess(data.user);
     } else {
       showToast(data.message || 'Incorrect verification code.', 'error');
     }
@@ -928,9 +918,9 @@ function triggerPayment(e) {
     return;
   }
 
-  const name = document.getElementById('customer-name').value;
-  const phone = document.getElementById('customer-phone').value;
-  const email = document.getElementById('customer-email').value;
+  const name = state.currentUser.name;
+  const phone = state.currentUser.phone;
+  const email = state.currentUser.email;
 
   const subtotal = calculateSubtotal();
   const total = Math.round((subtotal / 0.9764) * 100) / 100;
