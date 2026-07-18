@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="index.css">
   <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
   <!-- Load server environment variables dynamically -->
+  <script>
+    // Force mobile browsers to load fresh CSS versions dynamically
+    document.write('<link rel="stylesheet" href="index.css?v=' + Date.now() + '">');
+  </script>
   <script src="env.js"></script>
 </head>
 <body>
