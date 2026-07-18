@@ -1166,10 +1166,18 @@ tr:last-child td {
     gap: 16px;
   }
   
+  #checkout-modal.modal-overlay {
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+    padding: 16px 8px !important;
+  }
+
   #checkout-modal .modal-content {
     border-radius: var(--radius-md) !important;
-    max-width: 95% !important;
+    max-width: 100% !important;
+    width: 100% !important;
     margin: 10px auto !important;
+    overflow: visible !important;
   }
 
   #checkout-modal .modal-body {
