@@ -514,9 +514,15 @@ section {
 
 .slots-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
   margin-bottom: 30px;
+}
+
+@media (max-width: 480px) {
+  .slots-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .slot {
