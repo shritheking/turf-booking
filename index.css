@@ -1185,6 +1185,77 @@ tr:last-child td {
   }
 }
 
+/* Compact layout for small mobile screens to fit completely without scroll */
+@media (max-width: 480px) {
+  #checkout-modal.modal-overlay {
+    padding: 8px 4px !important;
+    align-items: center !important; /* Keep it centered as it fits now */
+  }
+
+  #checkout-modal .modal-content {
+    max-height: 98vh !important;
+    margin: 0 auto !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  #checkout-modal .modal-header {
+    padding: 12px 16px !important;
+  }
+
+  #checkout-modal .modal-title {
+    font-size: 16px !important;
+  }
+
+  #checkout-modal .modal-body {
+    padding: 12px !important;
+  }
+
+  .summary-columns-grid {
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .summary-card {
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .summary-card > div:first-child {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .summary-card > div:nth-child(2) {
+    padding: 10px !important;
+    gap: 8px !important;
+    font-size: 12px !important;
+  }
+
+  .summary-card > div:nth-child(2) > div {
+    padding-bottom: 6px !important;
+  }
+
+  #checkout-modal .summary-price-card {
+    padding: 10px !important;
+    gap: 8px !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  #checkout-modal .summary-price-card div {
+    font-size: 12px !important;
+  }
+
+  #checkout-modal #checkout-summary-total,
+  #checkout-modal #summary-price-total {
+    font-size: 18px !important;
+  }
+
+  #checkout-modal .btn-secondary,
+  #checkout-modal .btn-primary {
+    padding: 10px !important;
+    font-size: 13px !important;
+  }
+}
+
 /* Responsive Admin Console overrides */
 @media (max-width: 768px) {
   #admin-dashboard-view {
