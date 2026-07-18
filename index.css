@@ -1152,6 +1152,38 @@ tr:last-child td {
   margin-top: 16px;
 }
 
+/* Responsive Admin Console overrides */
+@media (max-width: 768px) {
+  #admin-dashboard-view {
+    padding: 16px !important;
+    margin: 16px auto !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .admin-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .admin-split-panel {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 24px !important;
+    margin-top: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-login-card {
+    padding: 24px !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
 /* Contact Area */
 .contact-row {
   display: grid;

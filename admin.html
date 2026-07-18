@@ -60,7 +60,7 @@
 
       <!-- ADMIN REAL DASHBOARD CONTROLS (Hidden until login) -->
       <div id="admin-dashboard-view" style="display:none; background-color: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 30px; margin: 40px auto; box-shadow: var(--shadow-sm);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+        <div class="admin-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
           <div>
             <h2 style="font-size:24px; font-weight:500;">Console Home</h2>
             <p style="color:var(--text-secondary); font-size:13px;">Manage real-time turf registrations and hourly block states.</p>
@@ -147,7 +147,7 @@
             </div>
 
             <!-- Blocked lists or reset actions -->
-            <div style="border-left: 1px solid var(--border-color); padding-left: 24px;">
+            <div class="admin-split-panel" style="border-left: 1px solid var(--border-color); padding-left: 24px;">
               <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: var(--google-red);">Developer Simulation Utilities</h4>
               <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Use these commands to easily populate fake logs to check the admin metrics and dashboard reports, or reset the local database.</p>
               

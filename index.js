@@ -535,12 +535,13 @@ function openCheckoutModal() {
   }
 
   const subtotal = calculateSubtotal();
-  const tax = Math.round(subtotal * 0.18);
-  const total = subtotal + tax;
+  const rawTotal = subtotal / 0.9764;
+  const fee = rawTotal - subtotal;
+  const total = rawTotal;
 
   document.getElementById('checkout-summary-subtotal').innerText = `₹${subtotal}`;
-  document.getElementById('checkout-summary-tax').innerText = `₹${tax}`;
-  document.getElementById('checkout-summary-total').innerText = `₹${total}`;
+  document.getElementById('checkout-summary-tax').innerText = `₹${fee.toFixed(2)}`;
+  document.getElementById('checkout-summary-total').innerText = `₹${total.toFixed(2)}`;
 
   // User Autofill Handling (They are guaranteed to be logged in here)
   const signinPrompt = document.getElementById('checkout-signin-prompt');
@@ -932,8 +933,7 @@ function triggerPayment(e) {
   const email = document.getElementById('customer-email').value;
 
   const subtotal = calculateSubtotal();
-  const tax = Math.round(subtotal * 0.18);
-  const total = subtotal + tax;
+  const total = Math.round((subtotal / 0.9764) * 100) / 100;
 
   const sportTitle = GROUND_CONFIG[state.currentSport].title;
   const groundLabel = GROUND_CONFIG[state.currentSport].options.find(o => o.id === state.currentGround).label;
@@ -941,7 +941,7 @@ function triggerPayment(e) {
   // Razorpay Checkout Options
   const options = {
     "key": rzpKeyId,
-    "amount": total * 100, // amount in paise
+    "amount": Math.round(total * 100), // amount in paise
     "currency": "INR",
     "name": "GOAT Turf Madurai",
     "description": `${sportTitle} - ${groundLabel} Slot Booking`,
@@ -982,8 +982,8 @@ function triggerPayment(e) {
 // Success payment callback integration
 function completeRealPayment(paymentId, name, phone, email) {
   const subtotal = calculateSubtotal();
-  const tax = Math.round(subtotal * 0.18);
-  const total = subtotal + tax;
+  const total = Math.round((subtotal / 0.9764) * 100) / 100;
+  const tax = Math.round((total - subtotal) * 100) / 100; // Convenience fee saved as tax/fee column
 
   const bookingId = 'GT' + Math.floor(100000 + Math.random() * 900000);
 
